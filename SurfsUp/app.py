@@ -41,7 +41,7 @@ def welcome():
         f"/api/v1.0/tobs<br/>"
         f"/api/v1.0/station<br/>"
         f"/api/v1.0/<start><br/>"
-    #    f"/api/v1.0/<start>/<end>"
+        f"/api/v1.0/<start>/<end>"
     )
 
 
@@ -135,8 +135,7 @@ def start(start=None):
     # Create our session (link) from Python to the DB
     session = Session(engine)
     
-    # Create a dictionary with minimum, maximum and average temperatures
-       
+    # Create a dictionary with minimum, maximum and average temperatures   
     specified_start = dt.datetime.strptime(start, '%Y-%m-%d').date()
     sel = session.query(func.min(Measurement.tobs), func.max(Measurement.tobs), func.avg(Measurement.tobs)).\
         filter(Measurement.date >= specified_start).all()
@@ -146,23 +145,27 @@ def start(start=None):
 
     after_specified = {'minimum': after_specified_start_normal[0], 'maximum': after_specified_start_normal[1],  'average': after_specified_start_normal[2]}
 
-
     return jsonify(after_specified)
 
-#@app.route("/api/v1.0/<start>/<end>")
-#def start(start=None):
+@app.route("/api/v1.0/<start>/<end>")
+def between(start=None, end=None):
+
     # Create our session (link) from Python to the DB
-#    session = Session(engine)
+    session = Session(engine)
     
     # Create a dictionary with minimum, maximum and average temperatures
-       
-#    specified_start = dt.datetime.strptime(start, '%Y-%m-%d').date()
-#    sel = session.query(func.min(Measurement.tobs), func.max(Measurement.tobs), func.avg(Measurement.tobs)).\
-#        filter(Measurement.date >= specified_start).all()
-#    after_specified_start_final = list(np.ravel(sel))
-#    session.close()
+    specified_start = dt.datetime.strptime(start, '%Y-%m-%d').date()
+    specified_end = dt.datetime.strptime(end, '%Y-%m-%d').date()
+    sel1 = session.query(func.min(Measurement.tobs), func.max(Measurement.tobs), func.avg(Measurement.tobs)).\
+        filter(Measurement.date >= specified_start).\
+        filter(Measurement.date <= specified_end).all()
+    between_specified_normal = list(np.ravel(sel1))
+         
+    session.close()
 
-#    return jsonify(after_specified_start_final)
+    during_specified = {'minimum': between_specified_normal[0], 'maximum': between_specified_normal[1],  'average': between_specified_normal[2]}
+
+    return jsonify(during_specified)
 
 if __name__ == '__main__':
     app.run(debug=True)
