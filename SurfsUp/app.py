@@ -6,8 +6,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy import create_engine, func
 
 from flask import Flask, jsonify
-
-
+from dateutil.relativedelta import relativedelta
+import datetime as dt
 #################################################
 # Database Setup
 #################################################
@@ -38,8 +38,10 @@ def welcome():
     return (
         f"Available Routes:<br/>"
         f"/api/v1.0/precipitation<br/>"
+        f"/api/v1.0/tobs<br/>"
         f"/api/v1.0/station<br/>"
-        f"/api/v1.0/tobs"
+        f"/api/v1.0/<start><br/>"
+    #    f"/api/v1.0/<start>/<end>"
     )
 
 
@@ -48,13 +50,11 @@ def precipitation():
     # Create our session (link) from Python to the DB
     session = Session(engine)
 
+    # Date filter to find last 12 months of data
     dates = session.query(Measurement.date).order_by(Measurement.date.desc()).first()
     for d in dates:
-    
-    from dateutil.relativedelta import relativedelta
-    recent = dt.datetime.strptime(d, '%Y-%m-%d').date()
-    filter_date = recent - relativedelta(years=1)
-    filter_date
+        recent = dt.datetime.strptime(d, '%Y-%m-%d').date()
+        filter_date = recent - relativedelta(years=1)
 
     """Return a list of all measurment id"""
     # Query all measurement
@@ -63,26 +63,47 @@ def precipitation():
 
     session.close()
 
-    # Convert list of tuples into normal list
-    last_12_months_normal = list(np.ravel(last_12_months))
+    all_precipitation = []
+    for date, prcp in last_12_months:
+        precipitation_dict = {}
+        precipitation_dict["date"] = date
+        precipitation_dict["precipitation"] = prcp
+        all_precipitation.append(precipitation_dict)
 
-    return jsonify(last_12_months_normal)
+    return jsonify(all_precipitation)
 
 @app.route("/api/v1.0/tobs")
 def lobs():
     # Create our session (link) from Python to the DB
     session = Session(engine)
 
+    # Date filter to find last 12 months of data
+    dates = session.query(Measurement.date).order_by(Measurement.date.desc()).first()
+    for d in dates:
+        recent = dt.datetime.strptime(d, '%Y-%m-%d').date()
+        filter_date = recent - relativedelta(years=1)
+
     """Return a list of all measurment id"""
     # Query all measurement
-    results = session.query(Measurement.date).all()
+    tobs_result = session.query(Measurement.station, func.count(Measurement.station)).\
+    group_by(Measurement.station).\
+    order_by(func.count(Measurement.station).desc()).first()
+    most_active_station = tobs_result[0]
+    
+    most_active_station_12_months = session.query(Measurement.date, Measurement.tobs).\
+    filter(Measurement.date > filter_date).\
+    filter(Measurement.station == most_active_station).all()
 
     session.close()
 
-    # Convert list of tuples into normal list
-    all_dates = list(np.ravel(results))
-
-    return jsonify(all_dates)
+    all_temperature = []
+    for date, tobs in most_active_station_12_months:
+        temperature_dict = {}
+        temperature_dict["date"] = date
+        temperature_dict["temperature"] = tobs
+        all_temperature.append(temperature_dict)
+    
+    return jsonify(all_temperature)
 
 @app.route("/api/v1.0/station")
 def station():
@@ -91,13 +112,13 @@ def station():
 
     """Return a list of station data of each station"""
     # Query all stations
-    results = session.query(Station.id, Station.station, Station.name, Station.latitude, Station.longitude, Station.elevation).all()
+    station_results = session.query(Station.id, Station.station, Station.name, Station.latitude, Station.longitude, Station.elevation).all()
 
     session.close()
 
     # Create a dictionary from the row data and append to a list of all_stations
     all_stations = []
-    for id, station, name, latitude, longitude, elevation in results:
+    for id, station, name, latitude, longitude, elevation in station_results:
         station_dict = {}
         station_dict["id"] = id
         station_dict["station"] = station
@@ -109,6 +130,35 @@ def station():
 
     return jsonify(all_stations)
 
+@app.route("/api/v1.0/<start>")
+def start(start=None):
+    # Create our session (link) from Python to the DB
+    session = Session(engine)
+    
+    # Create a dictionary with minimum, maximum and average temperatures
+       
+    specified_start = dt.datetime.strptime(start, '%Y-%m-%d').date()
+    sel = session.query(func.min(Measurement.tobs), func.max(Measurement.tobs), func.avg(Measurement.tobs)).\
+        filter(Measurement.date >= specified_start).all()
+    after_specified_start_final = list(np.ravel(sel))
+    session.close()
+
+    return jsonify(after_specified_start_final)
+
+#@app.route("/api/v1.0/<start>/<end>")
+#def start(start=None):
+    # Create our session (link) from Python to the DB
+#    session = Session(engine)
+    
+    # Create a dictionary with minimum, maximum and average temperatures
+       
+#    specified_start = dt.datetime.strptime(start, '%Y-%m-%d').date()
+#    sel = session.query(func.min(Measurement.tobs), func.max(Measurement.tobs), func.avg(Measurement.tobs)).\
+#        filter(Measurement.date >= specified_start).all()
+#    after_specified_start_final = list(np.ravel(sel))
+#    session.close()
+
+#    return jsonify(after_specified_start_final)
 
 if __name__ == '__main__':
     app.run(debug=True)
