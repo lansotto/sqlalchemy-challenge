@@ -140,10 +140,14 @@ def start(start=None):
     specified_start = dt.datetime.strptime(start, '%Y-%m-%d').date()
     sel = session.query(func.min(Measurement.tobs), func.max(Measurement.tobs), func.avg(Measurement.tobs)).\
         filter(Measurement.date >= specified_start).all()
-    after_specified_start_final = list(np.ravel(sel))
+    after_specified_start_normal = list(np.ravel(sel))
+         
     session.close()
 
-    return jsonify(after_specified_start_final)
+    after_specified = {'minimum': after_specified_start_normal[0], 'maximum': after_specified_start_normal[1],  'average': after_specified_start_normal[2]}
+
+
+    return jsonify(after_specified)
 
 #@app.route("/api/v1.0/<start>/<end>")
 #def start(start=None):
