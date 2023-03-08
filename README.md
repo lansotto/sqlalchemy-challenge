@@ -2,9 +2,9 @@
 
 This challenge is part of module 10 of the University of Toronto's School of Continuing Studies' Data Analytics bootcamp.  The purpose of this challenge is to use Python and SQLAlchemy to do a basic climate analysis and data exploration of a climate database. Specifically, using SQLAlchemy ORM queries, Pandas, and Matplotlib.
 
-Requirements:
+# Requirements:
 
-Part 1: Analyze and Explore the Climate Data
+# Part 1: Analyze and Explore the Climate Data
 
 1. Note that you’ll use the provided files (climate_starter.ipynb and hawaii.sqlite) to complete your climate analysis and data exploration.
 2. Use the SQLAlchemy create_engine() function to connect to your SQLite database.
@@ -33,7 +33,7 @@ Station Analysis
         Plot the results as a histogram with bins=12.
 5. Close your session.
 
-Part 2: Design Your Climate App
+# Part 2: Design Your Climate App
 
 Now that you’ve completed your initial analysis, you’ll design a Flask API based on the queries that you just developed. To do so, use Flask to create your routes.
 1./
